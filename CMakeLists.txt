@@ -9,5 +9,5 @@ set(CMAKE_C_FLAGS "-static")
 include_directories(include)
 link_directories(lib)
 
-add_executable(baseis main.c)
+add_executable(baseis main.c HashTable.c SecondaryHashTable.c)
 target_link_libraries(baseis BF_64)
