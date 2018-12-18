@@ -55,13 +55,13 @@ int main(int argc, char **argv) {
 
     /* Create hash index on id */
     if (HT_CreateIndex(FILENAME, 'i', "id", sizeof(int), 3) < 0) {
-        fprintf(stderr, "Error creating hash index.\n");
+        fprintf(stderr, "Error creating file.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Open hash index based on id */
     if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
-        fprintf(stderr, "Error opening hash index.\n");
+        fprintf(stderr, "Error opening file.\n");
         HT_CloseIndex(headerInfo);
         exit(EXIT_FAILURE);
     }
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
         /* Insert record in hash index based on id */
         if (HT_InsertEntry(*headerInfo, getRandomRecord(id)) < 0) {
-            fprintf(stderr, "Error inserting entry in hash index\n");
+            fprintf(stderr, "Error inserting entry in file\n");
             HT_CloseIndex(headerInfo);
             exit(EXIT_FAILURE);
         }
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     /* Close id hash index */
     if (HT_CloseIndex(headerInfo) < 0) {
-        fprintf(stderr, "Error closing id hash index.\n");
+        fprintf(stderr, "Error closing file.\n");
         exit(EXIT_FAILURE);
     }
 
