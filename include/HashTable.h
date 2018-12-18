@@ -1,12 +1,24 @@
 #ifndef BASEIS_HASHTABLE_H
 #define BASEIS_HASHTABLE_H
 
+#include <stdlib.h>
+#include <string.h>
+#include <BF.h>
+#define SIZE 20
+#define ADDRESS_SIZE 40
+
 typedef struct{
     int id;
-    char name[15];
-    char surname[20];
-    char address[40];
+    char name[SIZE];
+    char surname[SIZE];
+    char address[ADDRESS_SIZE];
 } Record;
+
+typedef struct{
+    int recordsCounter;
+    Record** records;
+    int maxRecords;
+} Block;
 
 typedef struct {
     int fileDesc;           /* αναγνωριστικός αριθμός ανοίγματος αρχείου από το επίπεδο block */
