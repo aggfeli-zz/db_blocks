@@ -1,3 +1,4 @@
+#include <BF.h>
 #include "Helper.h"
 
 int getRecordSize() {
@@ -14,7 +15,7 @@ Record* createRecord(int id, char* name, char* surname, char* address) {
     return record;
 }
 
-//Record* createEmptyRecord() {
+//Record* createEmptyRecord() blockFromByteArray{
 //    Record* record = (Record*) malloc(sizeof(Record));
 //    record->id = -1;
 //    record->name = malloc(sizeof(char) * SIZE);
@@ -23,10 +24,11 @@ Record* createRecord(int id, char* name, char* surname, char* address) {
 
 Block* createEmptyBlock() {
     Block* block = malloc(sizeof(Block));
-    int maxRecords = BLOCK_SIZE / getRecordSize();
+    int maxRecords = BLOCK_SIZE / getRecordSize() - sizeof(int); // we need to keep the index of the overflow bucket
     block->maxRecords = maxRecords;
     block->records = malloc(sizeof(Record*) * maxRecords);
     block->recordsCounter = 0;
+    block->overflowBucket = 0;
     return block;
 }
 
@@ -34,9 +36,9 @@ unsigned char* recordToByteArray(Record* record) {
     unsigned char* byteArray;
     byteArray = malloc((size_t) getRecordSize());
     memcpy(byteArray, &(record->id), sizeof(int));
-    memcpy(&byteArray[sizeof(int)], &(record->name), sizeof(SIZE));
-    memcpy(&byteArray[sizeof(int) + SIZE], &(record->surname), sizeof(SIZE));
-    memcpy(&byteArray[sizeof(int) + (SIZE * 2)], &(record->address), sizeof(SIZE));
+    memcpy(&byteArray[sizeof(int)], &(record->name), SIZE);
+    memcpy(&byteArray[sizeof(int) + SIZE], &(record->surname), SIZE);
+    memcpy(&byteArray[sizeof(int) + (SIZE * 2)], &(record->address), ADDRESS_SIZE);
 
     return byteArray;
 }
@@ -52,10 +54,11 @@ Record* recordFromByteArray(void *byteArray) {
 
 unsigned char* blockToByteArray( Block* block) {
     unsigned char* byteArray = malloc(BLOCK_SIZE);
-    byteArray[0] = 1;
-    byteArray[1] = block->recordsCounter;
+    byteArray[0] = (unsigned char) block->recordsCounter;
+    byteArray[1] = (unsigned char) block->maxRecords;
+    byteArray[2] = (unsigned char) block->overflowBucket;
     for (int i = 0; i < block->recordsCounter; ++i) {
-        memcpy(&(byteArray[2 + i * getRecordSize()]), recordToByteArray(block->records[i]), sizeof(Record));
+        memcpy(&(byteArray[3 + i * getRecordSize()]), recordToByteArray(block->records[i]), sizeof(Record));
     }
     return byteArray;
 }
@@ -63,22 +66,24 @@ unsigned char* blockToByteArray( Block* block) {
 Block* blockFromByteArray(void* byteArray) {
     Block* block = createEmptyBlock();
     unsigned char* charArray = (unsigned char*) byteArray;
-    if (charArray[0] == 0) {
-        printf("Empty\n");
-        return NULL;
-    }
-    char numRecords = charArray[1];
-    for (int i = 0; i < numRecords; ++i) {
-        unsigned char* recordByteArray = &(charArray[2 + i * getRecordSize()]);
+    block->recordsCounter = charArray[0];
+    block->maxRecords = charArray[1];
+    block->overflowBucket = charArray[2];
+//    if (charArray[0] == 0) {
+//        printf("Empty\n");
+//        return NULL;
+//    }
+    for (int i = 0; i < block->recordsCounter; ++i) {
+        unsigned char* recordByteArray = &(charArray[3 + i * getRecordSize()]);
         Record* record = recordFromByteArray(recordByteArray);
         block->records[i] = record;
     }
-    block->recordsCounter = numRecords;
     return block;
 }
 
-int addBlockRecord(Block* block, Record* record) {
+int addBlockRecord(Block* block, Record* record, int numBlocks) {
     if (block->recordsCounter == block->maxRecords) {
+        block->overflowBucket = numBlocks; //the first bucket contains the metadata
         return -1;
     }
     block->records[block->recordsCounter] = record;
@@ -102,4 +107,36 @@ int printBlock(Block* block) {
         printRecord(block->records[i]);
     }
     return 0;
+}
+
+int printBucket(Block* bucket, char * attrName, char attrType, void * value) {
+    int numOfPrintedRecords = 0;
+    for (int j = 0; j < bucket->recordsCounter; ++j) {
+        if (attrType == 'i') {
+            if (bucket->records[j]->id == *(int *) value){
+                printRecord(bucket->records[j]);
+                numOfPrintedRecords++;
+            }
+
+        } else {
+            if (strcmp(attrName, "name") == 0) {
+                if (strcmp(bucket->records[j]->name, (char*) value) == 0 ) {
+                    printRecord(bucket->records[j]);
+                    numOfPrintedRecords++;
+                }
+            } else if (strcmp(attrName, "surname") == 0) {
+                if (strcmp(bucket->records[j]->surname, (char*)  value) == 0 ) {
+                    printRecord(bucket->records[j]);
+                    numOfPrintedRecords++;
+                }
+            } else {
+                if (strcmp(bucket->records[j]->address, (char*) value) == 0 ) {
+                    printRecord(bucket->records[j]);
+                    numOfPrintedRecords++;
+                }
+            }
+        }
+    }
+
+    return numOfPrintedRecords;
 }

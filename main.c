@@ -77,6 +77,9 @@ int main(int argc, char **argv) {
         }
     }
 
+    int value = 0;
+    int num = HT_GetAllEntries(*headerInfo, &value);
+
     /* Close id hash index */
     if (HT_CloseIndex(headerInfo) < 0) {
         fprintf(stderr, "Error closing file.\n");
