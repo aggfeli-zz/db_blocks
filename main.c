@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <HashTable.h>
+#include <time.h>
 
 #include "include/BF.h"
 
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
     for (int id = 0; id < 7; ++id) {
 
         /* Insert record in hash index based on id */
-        if (HT_InsertEntry(*headerInfo, getRandomRecord(id)) < 0) {
+        if (HT_InsertEntry(*headerInfo, getRandomRecord(0)) < 0) {
             fprintf(stderr, "Error inserting entry in file\n");
             HT_CloseIndex(headerInfo);
             exit(EXIT_FAILURE);
@@ -99,7 +100,7 @@ Record getRandomRecord(int id) {
     Record record;
     int r;
 
-    srand(12569874);
+    srand ((unsigned int) clock());
     record.id = id;
     r = rand() % 10;
     memcpy(record.name, names[r], strlen(names[r]) + 1);

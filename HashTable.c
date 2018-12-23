@@ -18,6 +18,8 @@ void initializeHashArray(HT_info *headerInfo);
 
 void initializeBuckets(HT_info *headerInfo);
 
+void initializeBucket(void* bucket);
+
 unsigned hashFunction(void *key, HT_info ht_info);
 
 int HT_CreateIndex(char *fileName, char attrType, char *attrName, int attrLength, int buckets) {
@@ -149,34 +151,98 @@ int HT_InsertEntry(HT_info header_info, Record record) {
 
     int hashIndex = hashFunction(&record.id, header_info);
 
-    if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
-        BF_PrintError("Error getting block");
-    }
+    printRecord(&record);
 
-    Block* bucket = blockFromByteArray(block);
-
-    if (addBlockRecord(bucket, &record, numBlocks) < 0) { //block is full, create overflow bucket
-
-        if (BF_AllocateBlock(header_info.fileDesc) < 0) {
-            BF_PrintError("Error allocating block");
-        }
-
-        if (BF_ReadBlock(header_info.fileDesc, numBlocks, &block) < 0) {
+    while (1) {
+        if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
             BF_PrintError("Error getting block");
         }
 
-        bucket = blockFromByteArray(block);
+        Block* bucket = blockFromByteArray(block);
 
-        addBlockRecord(bucket, &record, numBlocks);
+        int result = addBlockRecord(bucket, &record, numBlocks);
 
-        byteArray = blockToByteArray(bucket);
-        memcpy(block, byteArray, BLOCK_SIZE);
+        if (result == 0) { //success
+            byteArray = blockToByteArray(bucket);
+            break;
+        } else if (result == -1) { //create overflow bucket
 
-        hashIndex = numBlocks;
-    } else {
-        byteArray = blockToByteArray(bucket);
-        memcpy(block, byteArray, BLOCK_SIZE);
+            /*save the changes in current bucket*/
+            byteArray = blockToByteArray(bucket);
+
+            memcpy(block, byteArray, BLOCK_SIZE);
+
+            if (BF_WriteBlock(header_info.fileDesc, hashIndex) < 0) {
+                BF_PrintError("Error writing block back");
+            }
+
+            /*Allocate new bucket*/
+            if (BF_AllocateBlock(header_info.fileDesc) < 0) {
+                BF_PrintError("Error allocating block");
+            }
+
+            hashIndex = numBlocks;
+
+            if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
+                BF_PrintError("Error getting block");
+            }
+
+            Block* newBucket = createEmptyBlock();
+
+            byteArray = blockToByteArray(newBucket);
+
+            memcpy(block, byteArray, BLOCK_SIZE);
+
+            if (BF_WriteBlock(header_info.fileDesc, hashIndex) < 0) {
+                BF_PrintError("Error writing block back");
+            }
+
+        } else { //move to overflow buckets
+            hashIndex = result;
+        }
     }
+
+//    if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
+//        BF_PrintError("Error getting block");
+//    }
+//
+//    Block* bucket = blockFromByteArray(block);
+//
+//    int result = addBlockRecord(bucket, &record, numBlocks);
+//
+//    if (result < 0) { //block is full, create overflow bucket
+//
+//        byteArray = blockToByteArray(bucket);
+//
+//        memcpy(block, byteArray, BLOCK_SIZE);
+//
+//        if (BF_WriteBlock(header_info.fileDesc, hashIndex) < 0) {
+//            BF_PrintError("Error writing block back");
+//        }
+//
+//        if (BF_AllocateBlock(header_info.fileDesc) < 0) {
+//            BF_PrintError("Error allocating block");
+//        }
+//
+//        if (BF_ReadBlock(header_info.fileDesc, numBlocks, &block) < 0) {
+//            BF_PrintError("Error getting block");
+//        }
+//
+//        Block* newBucket = createEmptyBlock();
+//
+//        addBlockRecord(newBucket, &record, numBlocks);
+//
+//        byteArray = blockToByteArray(newBucket);
+//
+//        hashIndex = numBlocks;
+//    } else if ( result == 0) {// success
+//        byteArray = blockToByteArray(bucket);
+//    }
+//    else { //overflow bucket already exists
+//
+//    }
+
+    memcpy(block, byteArray, BLOCK_SIZE);
 
     if (BF_WriteBlock(header_info.fileDesc, hashIndex) < 0) {
         BF_PrintError("Error writing block back");
@@ -189,9 +255,11 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
     void *block;
     int numOfPrintedRecords = 0;
 
-    if (BF_ReadBlock(header_info.fileDesc, 0, &block) < 0) {
-        BF_PrintError("Error getting block");
-    }
+    int numBlocks = BF_GetBlockCounter(header_info.fileDesc);
+
+//    if (BF_ReadBlock(header_info.fileDesc, 0, &block) < 0) {
+//        BF_PrintError("Error getting block");
+//    }
 
     for (int i = 2; i < header_info.numBuckets; ++i) {
 
@@ -200,7 +268,7 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
         }
 
         Block* bucket = blockFromByteArray(block);
-        numOfPrintedRecords = printBucket(bucket, header_info.attrName, header_info.attrType, value);
+        numOfPrintedRecords = printBucket(*bucket, header_info.attrName, header_info.attrType, value);
 
 //        for (int j = 0; j < bucket->recordsCounter; ++j) {
 //            if (header_info.attrType == 'i' && bucket->records[j]->id == (int) value) {
@@ -228,13 +296,13 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
 //        }
 
         while (bucket->overflowBucket != 0) {
-            if (BF_ReadBlock(header_info.fileDesc, bucket->overflowBucket, block) < 0) {
+            if (BF_ReadBlock(header_info.fileDesc, bucket->overflowBucket, &block) < 0) {
                 BF_PrintError("Error getting block");
             }
 
             bucket = blockFromByteArray(block);
 
-            numOfPrintedRecords += printBucket(bucket, header_info.attrName, header_info.attrType, value);
+            numOfPrintedRecords += printBucket(*bucket, header_info.attrName, header_info.attrType, value);
 
         }
 
@@ -242,6 +310,12 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
 
     printf("Number of records printed: %d\n", numOfPrintedRecords);
     return numOfPrintedRecords;
+}
+
+void initializeBucket(void* bucket) {
+    Block* block = createEmptyBlock();
+    unsigned char* byteArray = blockToByteArray(block);
+    memcpy(bucket, byteArray, BLOCK_SIZE);
 }
 
 void initializeBuckets(HT_info *headerInfo) {
@@ -258,9 +332,7 @@ void initializeBuckets(HT_info *headerInfo) {
             BF_PrintError("Error getting block");
         }
 
-        Block* block = createEmptyBlock();
-        unsigned char* byteArray = blockToByteArray(block);
-        memcpy(bucket, byteArray, BLOCK_SIZE);
+        initializeBucket(bucket);
 
         if (BF_WriteBlock(headerInfo->fileDesc, i) < 0) {
             BF_PrintError("Error writing block back");

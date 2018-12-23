@@ -40,6 +40,6 @@ int printRecord(Record* record);
 
 int printBlock(Block* block);
 
-int printBucket(Block* bucket,char * attrName, char attrType, void * value);
+int printBucket(Block bucket,char * attrName, char attrType, void * value);
 
 #endif //BASEIS_HELPER_H

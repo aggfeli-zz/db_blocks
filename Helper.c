@@ -36,9 +36,9 @@ unsigned char* recordToByteArray(Record* record) {
     unsigned char* byteArray;
     byteArray = malloc((size_t) getRecordSize());
     memcpy(byteArray, &(record->id), sizeof(int));
-    memcpy(&byteArray[sizeof(int)], &(record->name), SIZE);
-    memcpy(&byteArray[sizeof(int) + SIZE], &(record->surname), SIZE);
-    memcpy(&byteArray[sizeof(int) + (SIZE * 2)], &(record->address), ADDRESS_SIZE);
+    memcpy(&byteArray[sizeof(int)], (record->name), SIZE);
+    memcpy(&byteArray[sizeof(int) + SIZE], (record->surname), SIZE);
+    memcpy(&byteArray[sizeof(int) + (SIZE * 2)], (record->address), ADDRESS_SIZE);
 
     return byteArray;
 }
@@ -83,8 +83,12 @@ Block* blockFromByteArray(void* byteArray) {
 
 int addBlockRecord(Block* block, Record* record, int numBlocks) {
     if (block->recordsCounter == block->maxRecords) {
-        block->overflowBucket = numBlocks; //the first bucket contains the metadata
-        return -1;
+        if (block->overflowBucket == 0) {
+            block->overflowBucket = numBlocks; //the first bucket contains the metadata
+            return -1;  //overflow bucket does not exist
+        } else {
+            return block->overflowBucket; // return the overflow bucket
+        }
     }
     block->records[block->recordsCounter] = record;
     block->recordsCounter++;
@@ -109,29 +113,29 @@ int printBlock(Block* block) {
     return 0;
 }
 
-int printBucket(Block* bucket, char * attrName, char attrType, void * value) {
+int printBucket(Block bucket, char * attrName, char attrType, void * value) {
     int numOfPrintedRecords = 0;
-    for (int j = 0; j < bucket->recordsCounter; ++j) {
+    for (int j = 0; j < bucket.recordsCounter; ++j) {
         if (attrType == 'i') {
-            if (bucket->records[j]->id == *(int *) value){
-                printRecord(bucket->records[j]);
+            if (bucket.records[j]->id == *(int *) value){
+                printRecord(bucket.records[j]);
                 numOfPrintedRecords++;
             }
 
         } else {
             if (strcmp(attrName, "name") == 0) {
-                if (strcmp(bucket->records[j]->name, (char*) value) == 0 ) {
-                    printRecord(bucket->records[j]);
+                if (strcmp(bucket.records[j]->name, (char*) value) == 0 ) {
+                    printRecord(bucket.records[j]);
                     numOfPrintedRecords++;
                 }
             } else if (strcmp(attrName, "surname") == 0) {
-                if (strcmp(bucket->records[j]->surname, (char*)  value) == 0 ) {
-                    printRecord(bucket->records[j]);
+                if (strcmp(bucket.records[j]->surname, (char*)  value) == 0 ) {
+                    printRecord(bucket.records[j]);
                     numOfPrintedRecords++;
                 }
             } else {
-                if (strcmp(bucket->records[j]->address, (char*) value) == 0 ) {
-                    printRecord(bucket->records[j]);
+                if (strcmp(bucket.records[j]->address, (char*) value) == 0 ) {
+                    printRecord(bucket.records[j]);
                     numOfPrintedRecords++;
                 }
             }
