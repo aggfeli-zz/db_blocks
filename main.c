@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     for (int id = 0; id < 10; ++id) {
 
         /* Insert record in hash index based on id */
-        if (HT_InsertEntry(*headerInfo, getRandomRecord(0)) < 0) {
+        if (HT_InsertEntry(*headerInfo, getRandomRecord(id)) < 0) {
             fprintf(stderr, "Error inserting entry in file\n");
             HT_CloseIndex(headerInfo);
             exit(EXIT_FAILURE);
@@ -80,6 +80,21 @@ int main(int argc, char **argv) {
 
     int value = 0;
     int num = HT_GetAllEntries(*headerInfo, &value);
+
+    if (HT_DeleteEntry(*headerInfo, &value) < 0) {
+        fprintf(stderr, "Error delete entry.\n");
+        exit(EXIT_FAILURE);
+    }
+
+//    HT_GetAllEntries(*headerInfo, &value);
+//
+//    if (HT_InsertEntry(*headerInfo, getRandomRecord(0)) < 0) {
+//        fprintf(stderr, "Error inserting entry in file\n");
+//        HT_CloseIndex(headerInfo);
+//        exit(EXIT_FAILURE);
+//    }
+//
+//    HT_GetAllEntries(*headerInfo, &value);
 
     /* Close id hash index */
     if (HT_CloseIndex(headerInfo) < 0) {

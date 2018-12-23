@@ -160,6 +160,39 @@ int HT_InsertEntry(HT_info header_info, Record record) {
     return 0;
 }
 
+int HT_DeleteEntry(HT_info header_info, void *value) {
+    void *block;
+    unsigned char *byteArray;
+
+    int hashIndex = hashFunction(value, header_info);
+
+    while (1) {
+        if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
+            BF_PrintError("Error getting block");
+        }
+
+        Block *bucket = blockFromByteArray(block);
+
+        int result = searchBlock(bucket, header_info.attrName, header_info.attrType, value);
+
+        /*save the changes in current bucket*/
+        byteArray = blockToByteArray(bucket);
+
+        memcpy(block, byteArray, BLOCK_SIZE);
+
+        if (BF_WriteBlock(header_info.fileDesc, hashIndex) < 0) {
+            BF_PrintError("Error writing block back");
+        }
+
+        if (bucket->overflowBucket != 0) {
+            hashIndex = bucket->overflowBucket;
+        } else {
+            break;
+        }
+    }
+    return 0;
+}
+
 int HT_GetAllEntries(HT_info header_info, void *value) {
     void *block;
     int numOfPrintedRecords = 0, hashIndex;

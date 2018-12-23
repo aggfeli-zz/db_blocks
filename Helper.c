@@ -14,6 +14,14 @@ Record* createRecord(int id, char* name, char* surname, char* address) {
     strcpy(record->address, address);
     return record;
 }
+Record* createEmptryRecord() {
+    Record* record = (Record*) malloc(sizeof(Record));
+    record->id = -1;
+    strcpy(record->name, "");
+    strcpy(record->surname, "");
+    strcpy(record->address, "");
+    return record;
+}
 
 Block* createEmptyBlock() {
     Block* block = malloc(sizeof(Block));
@@ -86,6 +94,41 @@ int addBlockRecord(Block* block, Record* record, int numBlocks) {
     block->records[block->recordsCounter] = record;
     block->recordsCounter++;
     return 0;
+}
+
+int deleteBlockRecord(Block* block, int index) {
+    block->records[index] = createEmptryRecord();
+    block->recordsCounter--;
+
+    return 0;
+}
+
+int searchBlock(Block* bucket, char * attrName, char attrType, void * value) {
+    if (bucket == NULL) {
+        return -1;
+    }
+    for (int j = 0; j < bucket->recordsCounter; ++j) {
+        if (attrType == 'i') {
+            if (bucket->records[j]->id == *(int *) value){
+                deleteBlockRecord(bucket, j);
+            }
+
+        } else {
+            if (strcmp(attrName, "name") == 0) {
+                if (strcmp(bucket->records[j]->name, (char*) value) == 0 ) {
+                    deleteBlockRecord(bucket, j);
+                }
+            } else if (strcmp(attrName, "surname") == 0) {
+                if (strcmp(bucket->records[j]->surname, (char*)  value) == 0 ) {
+                    deleteBlockRecord(bucket, j);
+                }
+            } else {
+                if (strcmp(bucket->records[j]->address, (char*) value) == 0 ) {
+                    deleteBlockRecord(bucket, j);
+                }
+            }
+        }
+    }
 }
 
 int printRecord(Record* record) {
