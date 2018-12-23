@@ -15,13 +15,6 @@ Record* createRecord(int id, char* name, char* surname, char* address) {
     return record;
 }
 
-//Record* createEmptyRecord() blockFromByteArray{
-//    Record* record = (Record*) malloc(sizeof(Record));
-//    record->id = -1;
-//    record->name = malloc(sizeof(char) * SIZE);
-//
-//}
-
 Block* createEmptyBlock() {
     Block* block = malloc(sizeof(Block));
     int maxRecords = BLOCK_SIZE / getRecordSize() - sizeof(int); // we need to keep the index of the overflow bucket
