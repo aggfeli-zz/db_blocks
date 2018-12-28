@@ -53,6 +53,7 @@ int HT_CreateIndex(char *fileName, char attrType, char *attrName, int attrLength
         BF_PrintError("Error closing file");
     }
 
+    free(headerInfo->attrName);
     free(headerInfo);
 
     return 0;
@@ -62,6 +63,7 @@ HT_info *HT_OpenIndex(char *fileName) {
     void *block;
 
     HT_info *headerInfo = malloc(sizeof(HT_info));
+    headerInfo->attrName = malloc(sizeof(char *));
 
     if ((headerInfo->fileDesc = BF_OpenFile(fileName)) < 0) {
         BF_PrintError("Error opening file");
@@ -79,7 +81,7 @@ HT_info *HT_OpenIndex(char *fileName) {
     }
 
     memcpy(&(headerInfo->attrType), block + sizeof("Hashtable"), sizeof(char));
-    memcpy((headerInfo->attrName), block + sizeof("Hashtable") + sizeof(char), sizeof(char *));
+    memcpy(headerInfo->attrName, block + sizeof("Hashtable") + sizeof(char), sizeof(char *));
     memcpy(&(headerInfo->attrLength), block + sizeof("Hashtable") + sizeof(char *) + sizeof(char), sizeof(int));
     memcpy(&(headerInfo->numBuckets), block + sizeof("Hashtable") + sizeof(char *) + sizeof(char) + sizeof(int),
            sizeof(int));
@@ -92,6 +94,7 @@ int HT_CloseIndex(HT_info *header_info) {
         BF_PrintError("Error closing hash file");
         return -1;
     }
+    free(header_info->attrName);
     free(header_info);
     return 0;
 }
@@ -201,23 +204,20 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
 
     int hashIndex = hashFunction(value, header_info);
 
-//    for (int i = 2; i < header_info.numBuckets; ++i) {
-//        hashIndex = i;
-        while (1) {
-            if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
-                BF_PrintError("Error getting block");
-            }
-
-            Block* bucket = blockFromByteArray(block);
-            numOfPrintedRecords += printBucket(*bucket, header_info.attrName, header_info.attrType, value);
-
-            if (bucket->overflowBucket != 0) {
-                hashIndex = bucket->overflowBucket;
-            } else {
-                break;
-            }
+    while (1) {
+        if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
+            BF_PrintError("Error getting block");
         }
-//    }
+
+        Block* bucket = blockFromByteArray(block);
+        numOfPrintedRecords += printBucket(*bucket, header_info.attrName, header_info.attrType, value);
+
+        if (bucket->overflowBucket != 0) {
+            hashIndex = bucket->overflowBucket;
+        } else {
+            break;
+        }
+    }
 
     printf("Number of records printed: %d\n", numOfPrintedRecords);
     return numOfPrintedRecords;

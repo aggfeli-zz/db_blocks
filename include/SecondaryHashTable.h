@@ -11,6 +11,11 @@ typedef struct {
     char *fileName;            /* όνομα αρχείου με το πρωτεύον ευρετήριο στο id */
 } SHT_info;
 
+typedef struct{
+    Record record;
+    int blockId; //Το block στο οποίο έγινε η εισαγωγή της εγγραφής στο πρωτεύον ευρετήριο.
+} SecondaryRecord;
+
 int SHT_CreateSecondaryIndex( char *sfileName,  /* όνομα αρχείου */
                                 char* attrName, /* όνομα πεδίου-κλειδιού */
                                 int attrLength, /* μήκος πεδίου-κλειδιού */

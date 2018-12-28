@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <HashTable.h>
+#include "SecondaryHashTable.h"
 #include <time.h>
 
 #include "include/BF.h"
 
 #define FILENAME "file"
+#define SECONDARYFILENAME "secondaryfile"
 
 const char *names[] = {
         "Yannis",
@@ -51,24 +53,37 @@ Record getRandomRecord(int id);
 
 int main(int argc, char **argv) {
     HT_info *headerInfo;
+    SHT_info *sht_info;
     int hashIndex;
     BF_Init();
 
+/**********************************************HashTable***************************************************************/
     /* Create hash index on id */
     if (HT_CreateIndex(FILENAME, 'i', "id", sizeof(int), 3) < 0) {
         fprintf(stderr, "Error creating file.\n");
         exit(EXIT_FAILURE);
     }
+/**********************************************************************************************************************/
 
-    /* Open hash index based on id */
-    if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
-        fprintf(stderr, "Error opening file.\n");
-        HT_CloseIndex(headerInfo);
+
+
+/***************************************SecondaryHashTable*************************************************************/
+    /* Create hash index on id */
+    if (SHT_CreateSecondaryIndex(SECONDARYFILENAME, "id", sizeof(int), 3) < 0) {
+        fprintf(stderr, "Error creating secondary  file.\n");
         exit(EXIT_FAILURE);
     }
+/**********************************************************************************************************************/
 
     printf("Insert Entries\n");
     for (int id = 0; id < 10; ++id) {
+
+    /******************************************************************************************************************/
+        if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
+            fprintf(stderr, "Error opening file.\n");
+            HT_CloseIndex(headerInfo);
+            exit(EXIT_FAILURE);
+        }
 
         /* Insert record in hash index based on id */
         hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(id));
@@ -77,6 +92,21 @@ int main(int argc, char **argv) {
             HT_CloseIndex(headerInfo);
             exit(EXIT_FAILURE);
         }
+
+        /* Close id hash index */
+        if (HT_CloseIndex(headerInfo) < 0) {
+            fprintf(stderr, "Error closing file.\n");
+            exit(EXIT_FAILURE);
+        }
+    /******************************************************************************************************************/
+    }
+
+/**********************************************************************************************************************/
+
+    if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
+        fprintf(stderr, "Error opening file.\n");
+        HT_CloseIndex(headerInfo);
+        exit(EXIT_FAILURE);
     }
 
     int value = 0;
@@ -87,22 +117,39 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-//    HT_GetAllEntries(*headerInfo, &value);
-//
-//    hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(0));
-//    if ( hashIndex < 0) {
-//        fprintf(stderr, "Error inserting entry in file\n");
-//        HT_CloseIndex(headerInfo);
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    HT_GetAllEntries(*headerInfo, &value);
+    //    HT_GetAllEntries(*headerInfo, &value);
+    //
+    //    hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(0));
+    //    if ( hashIndex < 0) {
+    //        fprintf(stderr, "Error inserting entry in file\n");
+    //        HT_CloseIndex(headerInfo);
+    //        exit(EXIT_FAILURE);
+    //    }
+    //
+    //    HT_GetAllEntries(*headerInfo, &value);
 
     /* Close id hash index */
     if (HT_CloseIndex(headerInfo) < 0) {
         fprintf(stderr, "Error closing file.\n");
         exit(EXIT_FAILURE);
     }
+/**********************************************************************************************************************/
+
+    /**********************************Close SecondaryHashTable************************************/
+
+    if ((sht_info = SHT_OpenSecondaryIndex(SECONDARYFILENAME)) == NULL) {
+        fprintf(stderr, "Error opening secondary file.\n");
+        SHT_CloseSecondaryIndex(sht_info);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Close id hash index */
+    if (SHT_CloseSecondaryIndex(sht_info) < 0) {
+        fprintf(stderr, "Error closing secondary file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /**********************************************************************************************/
 
     /* ** Print blocks to see content */
 
