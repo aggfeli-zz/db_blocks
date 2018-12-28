@@ -97,7 +97,10 @@ int addBlockRecord(Block* block, Record* record, int numBlocks) {
 }
 
 int deleteBlockRecord(Block* block, int index) {
-    block->records[index] = createEmptryRecord();
+    while (index < block->recordsCounter) {
+        block->records[index] = block->records[index + 1];
+        index++;
+    }
     block->recordsCounter--;
 
     return 0;

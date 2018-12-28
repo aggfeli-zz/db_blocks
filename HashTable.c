@@ -157,7 +157,7 @@ int HT_InsertEntry(HT_info header_info, Record record) {
         BF_PrintError("Error writing block back");
     }
 
-    return 0;
+    return hashIndex;
 }
 
 int HT_DeleteEntry(HT_info header_info, void *value) {

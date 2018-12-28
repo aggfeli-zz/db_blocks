@@ -51,7 +51,7 @@ Record getRandomRecord(int id);
 
 int main(int argc, char **argv) {
     HT_info *headerInfo;
-
+    int hashIndex;
     BF_Init();
 
     /* Create hash index on id */
@@ -71,7 +71,8 @@ int main(int argc, char **argv) {
     for (int id = 0; id < 10; ++id) {
 
         /* Insert record in hash index based on id */
-        if (HT_InsertEntry(*headerInfo, getRandomRecord(id)) < 0) {
+        hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(id));
+        if ( hashIndex < 0) {
             fprintf(stderr, "Error inserting entry in file\n");
             HT_CloseIndex(headerInfo);
             exit(EXIT_FAILURE);
@@ -88,7 +89,8 @@ int main(int argc, char **argv) {
 
 //    HT_GetAllEntries(*headerInfo, &value);
 //
-//    if (HT_InsertEntry(*headerInfo, getRandomRecord(0)) < 0) {
+//    hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(0));
+//    if ( hashIndex < 0) {
 //        fprintf(stderr, "Error inserting entry in file\n");
 //        HT_CloseIndex(headerInfo);
 //        exit(EXIT_FAILURE);
