@@ -322,6 +322,7 @@ unsigned hashFunction(void *key, HT_info ht_info) {
         for (int i = 0; i < ht_info.attrLength; i++) {
             hashIndex += (int) k[i];
         }
+        hashIndex %= ht_info.numBuckets;
     }
     return hashIndex + 2;
 }
