@@ -20,6 +20,8 @@ void initializeBuckets(HT_info *headerInfo);
 
 void initializeBucket(void* bucket);
 
+void* chooseHashingAttribute(HT_info ht_info, Record *record);
+
 unsigned hashFunction(void *key, HT_info ht_info);
 
 int HT_CreateIndex(char *fileName, char attrType, char *attrName, int attrLength, int buckets) {
@@ -100,7 +102,7 @@ int HT_InsertEntry(HT_info header_info, Record record) {
 
     int numBlocks = BF_GetBlockCounter(header_info.fileDesc);
 
-    int hashIndex = hashFunction(&record.id, header_info);
+    int hashIndex = hashFunction(chooseHashingAttribute(header_info, &record), header_info);
 
     while (1) {
         if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
@@ -195,10 +197,12 @@ int HT_DeleteEntry(HT_info header_info, void *value) {
 
 int HT_GetAllEntries(HT_info header_info, void *value) {
     void *block;
-    int numOfPrintedRecords = 0, hashIndex;
+    int numOfPrintedRecords = 0;
 
-    for (int i = 2; i < header_info.numBuckets; ++i) {
-        hashIndex = i;
+    int hashIndex = hashFunction(value, header_info);
+
+//    for (int i = 2; i < header_info.numBuckets; ++i) {
+//        hashIndex = i;
         while (1) {
             if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
                 BF_PrintError("Error getting block");
@@ -213,7 +217,7 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
                 break;
             }
         }
-    }
+//    }
 
     printf("Number of records printed: %d\n", numOfPrintedRecords);
     return numOfPrintedRecords;
@@ -293,6 +297,19 @@ void initializeMetadataBlock(HT_info *headerInfo) {
     }
 }
 
+void* chooseHashingAttribute(HT_info ht_info, Record *record) {
+    if (strcmp(ht_info.attrName, "id") == 0) {
+        return &record->id;
+    } else if (strcmp(ht_info.attrName, "name") == 0) {
+        return &record->name;
+    } else if (strcmp(ht_info.attrName, "surname") == 0) {
+        return &record->surname;
+    } else {
+        return &record->address;
+    }
+
+}
+
 unsigned hashFunction(void *key, HT_info ht_info) {
     unsigned hashIndex = 0;
 
@@ -306,5 +323,5 @@ unsigned hashFunction(void *key, HT_info ht_info) {
             hashIndex += (int) k[i];
         }
     }
-        return hashIndex + 2;
+    return hashIndex + 2;
 }
