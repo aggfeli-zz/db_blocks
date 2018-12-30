@@ -51,9 +51,13 @@ const char *address[] = {
 
 Record getRandomRecord(int id);
 
+SecondaryRecord getSecondaryRecord(Record record, int index);
+
 int main(int argc, char **argv) {
     HT_info *headerInfo;
     SHT_info *sht_info;
+    Record record;
+    SecondaryRecord secondaryRecord;
     int hashIndex;
     BF_Init();
 
@@ -69,7 +73,7 @@ int main(int argc, char **argv) {
 
 /***************************************SecondaryHashTable*************************************************************/
     /* Create hash index on id */
-    if (SHT_CreateSecondaryIndex(SECONDARYFILENAME, "id", sizeof(int), 3) < 0) {
+    if (SHT_CreateSecondaryIndex(SECONDARYFILENAME, "name", sizeof(char*), 3) < 0) {
         fprintf(stderr, "Error creating secondary  file.\n");
         exit(EXIT_FAILURE);
     }
@@ -78,7 +82,7 @@ int main(int argc, char **argv) {
     printf("Insert Entries\n");
     for (int id = 0; id < 10; ++id) {
 
-    /******************************************************************************************************************/
+    /************************Insert HashTable**************************************************************************/
         if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
             fprintf(stderr, "Error opening file.\n");
             HT_CloseIndex(headerInfo);
@@ -86,7 +90,8 @@ int main(int argc, char **argv) {
         }
 
         /* Insert record in hash index based on id */
-        hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(id));
+        record = getRandomRecord(id);
+        hashIndex = HT_InsertEntry(*headerInfo, record);
         if ( hashIndex < 0) {
             fprintf(stderr, "Error inserting entry in file\n");
             HT_CloseIndex(headerInfo);
@@ -99,9 +104,34 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
     /******************************************************************************************************************/
+
+
+    /**********************Insert Secondary HashTable******************************************************************/
+        if ((sht_info = SHT_OpenSecondaryIndex(SECONDARYFILENAME)) == NULL) {
+            fprintf(stderr, "Error opening secondary file.\n");
+            SHT_CloseSecondaryIndex(sht_info);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Insert record in hash index based on id */
+        secondaryRecord = getSecondaryRecord(record, hashIndex);
+        hashIndex = SHT_SecondaryInsertEntry(*sht_info, secondaryRecord);
+        if ( hashIndex < 0) {
+            fprintf(stderr, "Error inserting entry in sec file\n");
+            SHT_CloseSecondaryIndex(sht_info);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Close id hash index */
+        if (SHT_CloseSecondaryIndex(sht_info) < 0) {
+            fprintf(stderr, "Error closing sec file.\n");
+            exit(EXIT_FAILURE);
+        }
+    /******************************************************************************************************************/
+
     }
 
-/**********************************************************************************************************************/
+/*******************Get and Delete from HashTable**********************************************************************/
 
     if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
         fprintf(stderr, "Error opening file.\n");
@@ -110,7 +140,7 @@ int main(int argc, char **argv) {
     }
 
     int value = 0;
-    int num = HT_GetAllEntries(*headerInfo, &value);
+    int numOfBlocksRead = HT_GetAllEntries(*headerInfo, &value);
 
     if (HT_DeleteEntry(*headerInfo, &value) < 0) {
         fprintf(stderr, "Error delete entry.\n");
@@ -135,7 +165,8 @@ int main(int argc, char **argv) {
     }
 /**********************************************************************************************************************/
 
-    /**********************************Close SecondaryHashTable************************************/
+
+/*******************Get and Delete from Secondary HashTable************************************************************/
 
     if ((sht_info = SHT_OpenSecondaryIndex(SECONDARYFILENAME)) == NULL) {
         fprintf(stderr, "Error opening secondary file.\n");
@@ -143,15 +174,14 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    int numOfBlocksReadInSecHashtable = SHT_SecondaryGetAllEntries(*sht_info, *headerInfo, "Vagelis");
+
     /* Close id hash index */
     if (SHT_CloseSecondaryIndex(sht_info) < 0) {
         fprintf(stderr, "Error closing secondary file.\n");
         exit(EXIT_FAILURE);
     }
-
-    /**********************************************************************************************/
-
-    /* ** Print blocks to see content */
+/**********************************************************************************************************************/
 
     return EXIT_SUCCESS;
 }
@@ -159,6 +189,13 @@ int main(int argc, char **argv) {
 int HashStatistics(char *filename) {
     return 0;
 };
+
+SecondaryRecord getSecondaryRecord(Record record, int index) {
+    SecondaryRecord secondaryRecord;
+    secondaryRecord.record = record;
+    secondaryRecord.blockId = index;
+    return secondaryRecord;
+}
 
 Record getRandomRecord(int id) {
     Record record;

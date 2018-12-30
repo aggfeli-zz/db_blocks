@@ -200,7 +200,7 @@ int HT_DeleteEntry(HT_info header_info, void *value) {
 
 int HT_GetAllEntries(HT_info header_info, void *value) {
     void *block;
-    int numOfPrintedRecords = 0;
+    int numOfPrintedRecords = 0, numOfReadBlocks = 0;
 
     int hashIndex = hashFunction(value, header_info);
 
@@ -208,6 +208,7 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
         if (BF_ReadBlock(header_info.fileDesc, hashIndex, &block) < 0) {
             BF_PrintError("Error getting block");
         }
+        numOfReadBlocks++;
 
         Block* bucket = blockFromByteArray(block);
         numOfPrintedRecords += printBucket(*bucket, header_info.attrName, header_info.attrType, value);
@@ -220,7 +221,8 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
     }
 
     printf("Number of records printed: %d\n", numOfPrintedRecords);
-    return numOfPrintedRecords;
+    printf("Number of blocks read: %d\n", numOfReadBlocks);
+    return numOfReadBlocks;
 }
 
 void initializeBucket(void* bucket) {

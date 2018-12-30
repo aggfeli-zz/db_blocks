@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #define SIZE 20
 #define ADDRESS_SIZE 40
 
@@ -14,11 +15,23 @@ typedef struct{
 } Record;
 
 typedef struct{
+    char name[SIZE];
+    int blockId;
+} SecondarySimpleRecord;
+
+typedef struct{
     int recordsCounter;
     Record** records;
     int maxRecords;
     int overflowBucket;
 } Block;
+
+typedef struct{
+    int recordsCounter;
+    SecondarySimpleRecord** records;
+    int maxRecords;
+    int overflowBucket;
+} SecondaryBlock;
 
 int getRecordSize();
 
@@ -43,5 +56,22 @@ int printBlock(Block* block);
 int searchBlock(Block* bucket, char * attrName, char attrType, void * value);
 
 int printBucket(Block bucket,char * attrName, char attrType, void * value);
+
+
+SecondaryBlock* createEmptySecondaryBlock();
+
+SecondarySimpleRecord* createSecondarySimpleRecord(char* name, int blockId);
+
+unsigned char* secondaryRecordToByteArray(SecondarySimpleRecord* record);
+
+SecondarySimpleRecord* secondaryRecordFromByteArray(void *byteArray);
+
+unsigned char* secondaryBlockToByteArray( SecondaryBlock* block);
+
+SecondaryBlock* secondaryBlockFromByteArray(void* byteArray);
+
+int addSecondaryBlockRecord(SecondaryBlock* block, char* name, int blockId, int numBlocks);
+
+int printSecondaryBucket(SecondaryBlock bucket, void * value);
 
 #endif //BASEIS_HELPER_H
