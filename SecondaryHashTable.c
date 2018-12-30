@@ -10,6 +10,8 @@ void initializeSecondaryMetadataBlock(SHT_info *headerInfo);
 
 int secondaryHashFunction(void *key, SHT_info ht_info);
 
+void sortBlockIds(int *pInt, int size);
+
 int SHT_CreateSecondaryIndex(char *sfileName, char* attrName, int attrLength, int buckets) {
     BF_Init();
     int fileDesc;
@@ -162,7 +164,13 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
         numOfReadBlocks++;
 
         SecondaryBlock* bucket = secondaryBlockFromByteArray(block);
-        numOfPrintedRecords += printSecondaryBucket(*bucket, value);
+        int *blockIds = malloc(bucket->recordsCounter * sizeof(int));
+        numOfPrintedRecords += printSecondaryBucket(*bucket, value, blockIds);
+
+        sortBlockIds(blockIds, bucket->recordsCounter);
+        HT_GetAllEntry(header_info_ht, value, blockIds, bucket->recordsCounter);
+
+        free(blockIds);
 
         if (bucket->overflowBucket != 0) {
             hashIndex = bucket->overflowBucket;
@@ -174,6 +182,18 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
     printf("Number of records printed: %d\n", numOfPrintedRecords);
     printf("Number of blocks read: %d\n", numOfReadBlocks);
     return numOfReadBlocks;
+}
+
+void sortBlockIds(int *pInt, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (pInt[j] < pInt[i]) {
+                int tmp = pInt[i];
+                pInt[i] = pInt[j];
+                pInt[j] = tmp;
+            }
+        }
+    }
 }
 
 int secondaryHashFunction(void *key, SHT_info ht_info) {

@@ -174,6 +174,12 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
+        fprintf(stderr, "Error opening file.\n");
+        HT_CloseIndex(headerInfo);
+        exit(EXIT_FAILURE);
+    }
+
     int numOfBlocksReadInSecHashtable = SHT_SecondaryGetAllEntries(*sht_info, *headerInfo, "Vagelis");
 
     /* Close id hash index */

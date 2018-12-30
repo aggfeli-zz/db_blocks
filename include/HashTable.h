@@ -33,4 +33,6 @@ int HT_DeleteEntry(HT_info header_info, void *value);
 
 int HT_GetAllEntries(HT_info header_info,void *value);
 
+int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBlocks);
+
 #endif //BASEIS_HASHTABLE_H

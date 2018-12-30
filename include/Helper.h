@@ -55,7 +55,9 @@ int printBlock(Block* block);
 
 int searchBlock(Block* bucket, char * attrName, char attrType, void * value);
 
-int printBucket(Block bucket,char * attrName, char attrType, void * value);
+int printBucketBasedOnTypeNameValue(Block bucket, char *attrName, char attrType, void *value);
+
+int printBucketBasedOnlyOnValue(Block bucket, char *attrName, void *value);
 
 
 SecondaryBlock* createEmptySecondaryBlock();
@@ -72,6 +74,6 @@ SecondaryBlock* secondaryBlockFromByteArray(void* byteArray);
 
 int addSecondaryBlockRecord(SecondaryBlock* block, char* name, int blockId, int numBlocks);
 
-int printSecondaryBucket(SecondaryBlock bucket, void * value);
+int printSecondaryBucket(SecondaryBlock bucket, void * value, int blockIds[]);
 
 #endif //BASEIS_HELPER_H

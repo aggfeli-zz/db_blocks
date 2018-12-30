@@ -211,13 +211,33 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
         numOfReadBlocks++;
 
         Block* bucket = blockFromByteArray(block);
-        numOfPrintedRecords += printBucket(*bucket, header_info.attrName, header_info.attrType, value);
+        numOfPrintedRecords += printBucketBasedOnTypeNameValue(*bucket, header_info.attrName, header_info.attrType,
+                                                               value);
 
         if (bucket->overflowBucket != 0) {
             hashIndex = bucket->overflowBucket;
         } else {
             break;
         }
+    }
+
+    printf("Number of records printed: %d\n", numOfPrintedRecords);
+    printf("Number of blocks read: %d\n", numOfReadBlocks);
+    return numOfReadBlocks;
+}
+
+int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBlocks) {
+    void *block;
+    int numOfPrintedRecords = 0, numOfReadBlocks = 0;
+
+    for (int i = 0; i < numOfBlocks && blockIds[i] > 0; i++) {
+        if (BF_ReadBlock(header_info.fileDesc, blockIds[i], &block) < 0) {
+            BF_PrintError("Error getting block");
+        }
+        numOfReadBlocks++;
+
+        Block* bucket = blockFromByteArray(block);
+        numOfPrintedRecords += printBucketBasedOnlyOnValue(*bucket, header_info.attrName, value);
     }
 
     printf("Number of records printed: %d\n", numOfPrintedRecords);

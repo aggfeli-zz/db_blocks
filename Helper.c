@@ -143,7 +143,7 @@ int printRecord(Record* record) {
     if (record == NULL) {
         return -1;
     }
-    printf("Record data: %d, %s, %s,%s \n", record->id, record->name, record->surname, record->address);
+    printf("Record data in first hashtable: %d, %s, %s,%s \n", record->id, record->name, record->surname, record->address);
     return 0;
 }
 
@@ -157,7 +157,7 @@ int printBlock(Block* block) {
     return 0;
 }
 
-int printBucket(Block bucket, char * attrName, char attrType, void * value) {
+int printBucketBasedOnTypeNameValue(Block bucket, char *attrName, char attrType, void *value) {
     int numOfPrintedRecords = 0;
     for (int j = 0; j < bucket.recordsCounter; ++j) {
         if (attrType == 'i') {
@@ -186,6 +186,28 @@ int printBucket(Block bucket, char * attrName, char attrType, void * value) {
         }
     }
 
+    return numOfPrintedRecords;
+}
+
+int printBucketBasedOnlyOnValue(Block bucket, char *attrName, void *value) {
+    int numOfPrintedRecords = 0;
+
+    for (int j = 0; j < bucket.recordsCounter; ++j) {
+        if (strcmp(bucket.records[j]->name, (char *) value) == 0) {
+            printRecord(bucket.records[j]);
+            numOfPrintedRecords++;
+        }
+
+        if (strcmp(bucket.records[j]->surname, (char *) value) == 0) {
+            printRecord(bucket.records[j]);
+            numOfPrintedRecords++;
+        }
+
+        if (strcmp(bucket.records[j]->address, (char *) value) == 0) {
+            printRecord(bucket.records[j]);
+            numOfPrintedRecords++;
+        }
+    }
     return numOfPrintedRecords;
 }
 
@@ -269,16 +291,16 @@ int printSecondaryRecord(SecondarySimpleRecord* record) {
     if (record == NULL) {
         return -1;
     }
-    printf("Record data: %d, %s\n", record->blockId, record->name);
+    printf("Record data in secondary hashtable: %d, %s\n", record->blockId, record->name);
 
-    return 0;
+    return record->blockId;
 }
 
-int printSecondaryBucket(SecondaryBlock bucket, void * value) {
+int printSecondaryBucket(SecondaryBlock bucket, void * value, int blockIds[]) {
     int numOfPrintedRecords = 0;
     for (int j = 0; j < bucket.recordsCounter; ++j) {
         if (strcmp(bucket.records[j]->name, (char*) value) == 0 ) {
-            printSecondaryRecord(bucket.records[j]);
+            blockIds[j] = printSecondaryRecord(bucket.records[j]);
             numOfPrintedRecords++;
         }
     }
