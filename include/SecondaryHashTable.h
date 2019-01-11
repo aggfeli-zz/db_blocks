@@ -19,7 +19,8 @@ typedef struct{
 int SHT_CreateSecondaryIndex( char *sfileName,  /* όνομα αρχείου */
                                 char* attrName, /* όνομα πεδίου-κλειδιού */
                                 int attrLength, /* μήκος πεδίου-κλειδιού */
-                                int buckets     /* αριθμός κάδων κατακερματισμού*/
+                                int buckets,     /* αριθμός κάδων κατακερματισμού*/
+                                char* fileName
                                 );
 
 SHT_info* SHT_OpenSecondaryIndex( char *sfileName);
@@ -30,6 +31,6 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record);
 
 int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht, void *value);
 
-
+int SHT_Statistics(SHT_info ht_info);
 
 #endif //BASEIS_SECONDARYHASHTABLE_H

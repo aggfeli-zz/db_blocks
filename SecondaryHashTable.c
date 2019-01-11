@@ -12,8 +12,7 @@ int secondaryHashFunction(void *key, SHT_info ht_info);
 
 void sortBlockIds(int *pInt, int size);
 
-int SHT_CreateSecondaryIndex(char *sfileName, char* attrName, int attrLength, int buckets) {
-    BF_Init();
+int SHT_CreateSecondaryIndex(char *sfileName, char* attrName, int attrLength, int buckets, char* fileName) {
     int fileDesc;
 
     if (BF_CreateFile(sfileName) < 0) {
@@ -63,14 +62,14 @@ SHT_info* SHT_OpenSecondaryIndex( char *sfileName) {
         return NULL;
     }
 
-    if (memcmp("Hashtable", block, sizeof("Hashtable"))) {
+    if (memcmp("SHashtable", block, sizeof("SHashtable"))) {
         BF_PrintError("Wrong type of file");
         return NULL;
     }
 
-    memcpy((headerInfo->attrName), block + sizeof("Hashtable"), sizeof(char *));
-    memcpy(&(headerInfo->attrLength), block + sizeof("Hashtable") + sizeof(char *), sizeof(int));
-    memcpy(&(headerInfo->numBuckets), block + sizeof("Hashtable") + sizeof(char *) + sizeof(int), sizeof(int));
+    memcpy((headerInfo->attrName), block + sizeof("SHashtable"), sizeof(char *));
+    memcpy(&(headerInfo->attrLength), block + sizeof("SHashtable") + sizeof(char *), sizeof(int));
+    memcpy(&(headerInfo->numBuckets), block + sizeof("SHashtable") + sizeof(char *) + sizeof(int), sizeof(int));
 
     return headerInfo;
 }
@@ -179,9 +178,66 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
         }
     }
 
-    printf("Number of records printed: %d\n", numOfPrintedRecords);
-    printf("Number of blocks read: %d\n", numOfReadBlocks);
-    return numOfReadBlocks;
+//    printf("Number of records printed: %d\n", numOfPrintedRecords);
+//    printf("Number of blocks read: %d\n", numOfReadBlocks);
+    if (numOfPrintedRecords > 0) {
+        return numOfReadBlocks;
+    } else {
+        return -1;
+    }
+}
+
+int SHT_Statistics(SHT_info ht_info) {
+    void *block;
+    int numOfRecords = 0, hashIndex, min = -1, max = 0, numOfBlocks = 0, numOfBucketsThatHaveOverflow = 0, arrayWithNumOfOverflow[ht_info.numBuckets];
+
+    memset(arrayWithNumOfOverflow, 0 , ht_info.numBuckets * sizeof(int));
+
+    for (int i = 2; i < ht_info.numBuckets + 2; ++i) {
+        hashIndex = i;
+
+        while (1) {
+            if (BF_ReadBlock(ht_info.fileDesc, hashIndex, &block) < 0) {
+                BF_PrintError("Error getting block");
+            }
+
+            Block* bucket = blockFromByteArray(block);
+            numOfBlocks++;
+            numOfRecords += bucket->recordsCounter;
+
+            if(min > bucket->recordsCounter || i == 2) {
+                min = bucket->recordsCounter;
+            }
+
+            if (max < bucket->recordsCounter) {
+                max = bucket->recordsCounter;
+            }
+
+            if (bucket->overflowBucket != 0) {
+                hashIndex = bucket->overflowBucket;
+                numOfBucketsThatHaveOverflow++;
+                arrayWithNumOfOverflow[i - 2]++;
+            } else {
+                break;
+            }
+        }
+    }
+
+    printf("**************************************************************************\n");
+
+    printf("Stat 1: Number of blocks %d\n",BF_GetBlockCounter(ht_info.fileDesc));
+
+    printf("Stat 2: Min number of records %d\n",min);
+    printf("Stat 2: Mean number of records %.2f\n",numOfRecords / (float) numOfBlocks);
+    printf("Stat 2: Max number of records %d\n", max);
+
+    printf("Stat 3: Mean number of blocks %.2f\n",numOfBlocks / (float) ht_info.numBuckets);
+
+    printf("Stat 4: Number of buckets that have overflow %d\n",numOfBucketsThatHaveOverflow);
+    for (int i = 0; i < ht_info.numBuckets; ++i) {
+        printf("Stat 4: Number of overflow buckets in bucket %d:  %d\n", (i + 1), arrayWithNumOfOverflow[i]);
+    }
+
 }
 
 void sortBlockIds(int *pInt, int size) {
@@ -273,10 +329,10 @@ void initializeSecondaryMetadataBlock(SHT_info *headerInfo) {
         BF_PrintError("Error getting block");
     }
 
-    memcpy(block, "Hashtable", sizeof("Hashtable"));
-    memcpy(block + sizeof("Hashtable"), headerInfo->attrName, sizeof(char *));
-    memcpy(block + sizeof("Hashtable") + sizeof(char *), &headerInfo->attrLength, sizeof(int));
-    memcpy(block + sizeof("Hashtable") + sizeof(char *) + sizeof(int), &headerInfo->numBuckets, sizeof(int));
+    memcpy(block, "SHashtable", sizeof("SHashtable"));
+    memcpy(block + sizeof("SHashtable"), headerInfo->attrName, sizeof(char *));
+    memcpy(block + sizeof("SHashtable") + sizeof(char *), &headerInfo->attrLength, sizeof(int));
+    memcpy(block + sizeof("SHashtable") + sizeof(char *) + sizeof(int), &headerInfo->numBuckets, sizeof(int));
 
     // for -> store the number of indexes ???????????????
 
