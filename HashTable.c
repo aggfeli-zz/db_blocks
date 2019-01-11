@@ -1,17 +1,6 @@
 #include <stdio.h>
 #include "HashTable.h"
 
-#define CALL_OR_DIE(call)     \
-{                             \
-    int code = call;     \
-    char message[20];    \
-    if (code != BFE_OK) {     \
-      sprintf(message, "Error code is %d", code); \
-      BF_PrintError(message);    \
-      exit(EXIT_FAILURE);     \
-    }                         \
-}
-
 void initializeMetadataBlock(HT_info *headerInfo);
 
 void initializeHashArray(HT_info *headerInfo);
@@ -26,10 +15,11 @@ unsigned hashFunction(void *key, HT_info ht_info);
 
 int HT_CreateIndex(char *fileName, char attrType, char *attrName, int attrLength, int buckets) {
 
-    BF_Init();
     int fileDesc;
 
-    CALL_OR_DIE(BF_CreateFile(fileName));
+    if (BF_CreateFile(fileName) < 0) {
+        BF_PrintError("Error creating file");
+    }
 
     if ((fileDesc = BF_OpenFile(fileName)) < 0) {
         BF_PrintError("Error opening file");
@@ -221,9 +211,13 @@ int HT_GetAllEntries(HT_info header_info, void *value) {
         }
     }
 
-    printf("Number of records printed: %d\n", numOfPrintedRecords);
-    printf("Number of blocks read: %d\n", numOfReadBlocks);
-    return numOfReadBlocks;
+//    printf("Number of records printed: %d\n", numOfPrintedRecords);
+//    printf("Number of blocks read: %d\n", numOfReadBlocks);
+    if (numOfPrintedRecords > 0) {
+        return numOfReadBlocks;
+    } else {
+        return -1;
+    }
 }
 
 int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBlocks) {
@@ -240,9 +234,62 @@ int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBl
         numOfPrintedRecords += printBucketBasedOnlyOnValue(*bucket, header_info.attrName, value);
     }
 
-    printf("Number of records printed: %d\n", numOfPrintedRecords);
-    printf("Number of blocks read: %d\n", numOfReadBlocks);
+//    printf("Number of records printed: %d\n", numOfPrintedRecords);
+//    printf("Number of blocks read: %d\n", numOfReadBlocks);
     return numOfReadBlocks;
+}
+
+int HT_Statistics(HT_info ht_info) {
+    void *block;
+    int numOfRecords = 0, hashIndex, min = -1, max = 0, numOfBlocks = 0, numOfBucketsThatHaveOverflow = 0, arrayWithNumOfOverflow[ht_info.numBuckets];
+
+    memset(arrayWithNumOfOverflow, 0 , ht_info.numBuckets * sizeof(int));
+
+    for (int i = 2; i < ht_info.numBuckets + 2; ++i) {
+        hashIndex = i;
+
+        while (1) {
+            if (BF_ReadBlock(ht_info.fileDesc, hashIndex, &block) < 0) {
+                BF_PrintError("Error getting block");
+            }
+
+            Block* bucket = blockFromByteArray(block);
+            numOfBlocks++;
+            numOfRecords += bucket->recordsCounter;
+
+            if(min > bucket->recordsCounter || i == 2) {
+                min = bucket->recordsCounter;
+            }
+
+            if (max < bucket->recordsCounter) {
+                max = bucket->recordsCounter;
+            }
+
+            if (bucket->overflowBucket != 0) {
+                hashIndex = bucket->overflowBucket;
+                numOfBucketsThatHaveOverflow++;
+                arrayWithNumOfOverflow[i - 2]++;
+            } else {
+                break;
+            }
+        }
+    }
+
+    printf("**************************************************************************\n");
+
+    printf("Stat 1: Number of blocks %d\n",BF_GetBlockCounter(ht_info.fileDesc));
+
+    printf("Stat 2: Min number of records %d\n",min);
+    printf("Stat 2: Mean number of records %.2f\n",numOfRecords / (float) numOfBlocks);
+    printf("Stat 2: Max number of records %d\n", max);
+
+    printf("Stat 3: Mean number of blocks %.2f\n",numOfBlocks / (float) ht_info.numBuckets);
+
+    printf("Stat 4: Number of buckets that have overflow %d\n",numOfBucketsThatHaveOverflow);
+    for (int i = 0; i < ht_info.numBuckets; ++i) {
+        printf("Stat 4: Number of overflow buckets in bucket %d:  %d\n", (i + 1), arrayWithNumOfOverflow[i]);
+    }
+
 }
 
 void initializeBucket(void* bucket) {

@@ -35,4 +35,6 @@ int HT_GetAllEntries(HT_info header_info,void *value);
 
 int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBlocks);
 
+int HT_Statistics(HT_info ht_info);
+
 #endif //BASEIS_HASHTABLE_H
