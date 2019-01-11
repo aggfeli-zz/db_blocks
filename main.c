@@ -10,211 +10,308 @@
 #define FILENAME "file"
 #define SECONDARYFILENAME "secondaryfile"
 
-const char *names[] = {
-        "Yannis",
-        "Christofos",
-        "Sofia",
-        "Marianna",
-        "Vagelis",
-        "Maria",
-        "Iosif",
-        "Dionisis",
-        "Konstantina",
-        "Theofilos"
-};
+int HashStatistics(char *filename);
 
-const char *surnames[] = {
-        "Ioannidis",
-        "Svingos",
-        "Karvounari",
-        "Rezkalla",
-        "Nikolopoulos",
-        "Berreta",
-        "Koronis",
-        "Gaitanis",
-        "Oikonomou",
-        "Mailis"
-};
 
-const char *address[] = {
-        "Athens",
-        "San Francisco",
-        "Los Angeles",
-        "Amsterdam",
-        "London",
-        "New York",
-        "Tokyo",
-        "Hong Kong",
-        "Munich",
-        "Miami"
-};
-
-Record getRandomRecord(int id);
-
-SecondaryRecord getSecondaryRecord(Record record, int index);
-
-int main(int argc, char **argv) {
-    HT_info *headerInfo;
-    SHT_info *sht_info;
-    Record record;
-    SecondaryRecord secondaryRecord;
-    int hashIndex;
+        int main(int argc,char** argv)
+{
+    /*
+    How many records to use for the  test.
+    */
+    int testRecordsNumber=atoi(argv[1]);
+    /*
+    The proportion for the deletes.
+    */
+    int testDeleteRecords=(int)testRecordsNumber*atof(argv[2]);
+    /*
+    Init the BF layer.
+    */
     BF_Init();
-
-/**********************************************HashTable***************************************************************/
-    /* Create hash index on id */
-    if (HT_CreateIndex(FILENAME, 'i', "id", sizeof(int), 3) < 0) {
-        fprintf(stderr, "Error creating file.\n");
-        exit(EXIT_FAILURE);
+    /*
+    Index parameters.
+    */
+    char fileName[15]="primary.index";
+    char attrType='i';
+    char* attrName="id";
+    int attrLength=4;
+    int buckets=2;
+    char sfileName[15]="secondary.index";
+    char* sAttrName="name";
+    int sAttrLength=15;
+    int sBuckets=2;
+    /*
+    C1: Create the  index.
+    */
+    printf("@Checkpoint 1: Create Index\n");
+    int createNumCode=HT_CreateIndex(fileName, attrType, attrName, attrLength, buckets);
+    if (createNumCode==0)
+    {
+        printf("Checkpoint Result 1: SUCCESS\n");
     }
-/**********************************************************************************************************************/
-
-
-
-/***************************************SecondaryHashTable*************************************************************/
-    /* Create hash index on id */
-    if (SHT_CreateSecondaryIndex(SECONDARYFILENAME, "name", sizeof(char*), 3) < 0) {
-        fprintf(stderr, "Error creating secondary  file.\n");
-        exit(EXIT_FAILURE);
+    else
+    {
+        printf("Checkpoint Result 1: FAIL\n");
     }
-/**********************************************************************************************************************/
 
-    printf("Insert Entries\n");
-    for (int id = 0; id < 10; ++id) {
-
-    /************************Insert HashTable**************************************************************************/
-        if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
-            fprintf(stderr, "Error opening file.\n");
-            HT_CloseIndex(headerInfo);
-            exit(EXIT_FAILURE);
+    /*
+    C2: Open index.
+    */
+    printf("@Checkpoint 2: Open Index\n");
+    HT_info* hi = HT_OpenIndex(fileName);
+    if(hi!=NULL && hi->attrType==attrType && strcmp(hi->attrName,attrName)==0)
+    {
+        printf("Checkpoint Result 2: SUCCESS\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 2: FAIL\n");
+    }
+    /*
+    C3: Insert records.
+    */
+    printf("@Checkpoint 3: Insert Records\n");
+    for (int i=0;i<testRecordsNumber;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        HT_InsertEntry(*hi,record);
+    }
+    /*
+    C4: Get all entries.
+    */
+    printf("@Checkpoint 4: Get all entries (Expecting greater than zero return code)\n");
+    int ch4=0;
+    for (int i=0;i<testRecordsNumber;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        int err=HT_GetAllEntries(*hi,(void*)&record.id);
+        if (err<0)
+        {
+            ch4+=1;
         }
-
-        /* Insert record in hash index based on id */
-        record = getRandomRecord(id);
-        hashIndex = HT_InsertEntry(*headerInfo, record);
-        if ( hashIndex < 0) {
-            fprintf(stderr, "Error inserting entry in file\n");
-            HT_CloseIndex(headerInfo);
-            exit(EXIT_FAILURE);
+    }
+    if(ch4>0)
+    {
+        printf("Checkpoint Result 4: FAIL\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 4: SUCCESS\n");
+    }
+    printf("@Checkpoint 5: Get all entries (Expecting -1 return code, records do not exist)\n");
+    int ch5=0;
+    /*
+    C5: Get entries that dont exist.
+    */
+    for (int i=testRecordsNumber;i<testRecordsNumber*2;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        int err=HT_GetAllEntries(*hi,(void*)&record.id);
+        if (err<0)
+        {
+            ch5+=1;
         }
-
-        /* Close id hash index */
-        if (HT_CloseIndex(headerInfo) < 0) {
-            fprintf(stderr, "Error closing file.\n");
-            exit(EXIT_FAILURE);
+    }
+    if(ch5!=testRecordsNumber)
+    {
+        printf("Checkpoint Result 5: FAIL\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 5: SUCCESS\n");
+    }
+    /*
+    C6: Delete entries.
+    */
+    printf("@Checkpoint 6: Delete some entries\n");
+    int ch6=0;
+    int deletesTest=(int)testDeleteRecords;
+    for (int i=0;i<deletesTest;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        int err=HT_DeleteEntry(*hi,(void*)&record.id);
+        if (err!=0)
+        {
+            ch6+=1;
         }
-    /******************************************************************************************************************/
-
-
-    /**********************Insert Secondary HashTable******************************************************************/
-        if ((sht_info = SHT_OpenSecondaryIndex(SECONDARYFILENAME)) == NULL) {
-            fprintf(stderr, "Error opening secondary file.\n");
-            SHT_CloseSecondaryIndex(sht_info);
-            exit(EXIT_FAILURE);
+    }
+    if(ch6!=0)
+    {
+        printf("Checkpoint Result 6: FAIL\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 6: SUCCESS\n");
+    }
+    /*
+    C7: Get all entries.
+    */
+    printf("@Checkpoint 7: Get all entries (%d should not exist)\n",testDeleteRecords);
+    int ch7=0;
+    for (int i=0;i<testRecordsNumber;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        int err=HT_GetAllEntries(*hi,(void*)&record.id);
+        if (err<0)
+        {
+            ch7+=1;
         }
-
-        /* Insert record in hash index based on id */
-        secondaryRecord = getSecondaryRecord(record, hashIndex);
-        hashIndex = SHT_SecondaryInsertEntry(*sht_info, secondaryRecord);
-        if ( hashIndex < 0) {
-            fprintf(stderr, "Error inserting entry in sec file\n");
-            SHT_CloseSecondaryIndex(sht_info);
-            exit(EXIT_FAILURE);
+    }
+    printf("%d %d\n",deletesTest,ch7);
+    if(ch7!=deletesTest)
+    {
+        printf("Checkpoint Result 7: FAIL\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 7: SUCCESS\n");
+    }
+    /*
+    Secondary index part.
+    */
+    /*
+    C8: Create/Open secondary index.
+    */
+    printf("@Checkpoint 8: Create Secondary/ Open Index\n");
+    int createErrorCode=SHT_CreateSecondaryIndex(sfileName,sAttrName,sAttrLength,sBuckets, fileName);
+    if (createErrorCode<0)
+    {
+        printf("Checkpoint Result 8: FAILED\n");
+        return -1;
+    }
+    SHT_info* shi=SHT_OpenSecondaryIndex(sfileName);
+    if(shi!=NULL)
+    {
+        printf("Checkpoint Result 8 SUCCESS\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 8: FAIL\n");
+    }
+    /*
+    Secondary index insert records.
+    */
+    /*
+    C9: Insert entries to both indexes.
+    */
+    printf("@Checkpoint 9: Insert Records Secondary\n");
+    int ch9=0;
+    for (int i=testRecordsNumber;i<testRecordsNumber*2;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        /*
+        We need to do two inserts:
+            * One in the HT.
+            * One in the SHT.
+        */
+        int blockId=HT_InsertEntry(*hi,record);
+        if (blockId>0)
+        {
+            SecondaryRecord sRecord;
+            sRecord.record=record;
+            sRecord.blockId=blockId;
+            int sInsertError=SHT_SecondaryInsertEntry(*shi,sRecord);
+            if(sInsertError<0)
+            {
+                ch9+=1;
+            }
         }
-
-        /* Close id hash index */
-        if (SHT_CloseSecondaryIndex(sht_info) < 0) {
-            fprintf(stderr, "Error closing sec file.\n");
-            exit(EXIT_FAILURE);
+    }
+    if (ch9==0)
+    {
+        printf("Checkpoint Result 9: SUCCESS\n");
+    }
+    else
+    {
+        printf("Checkpoint Result 9: Fail\n");
+    }
+    /*
+    C10: Get all entries using secondary the  index.
+    */
+    printf("@Checkpoint 10: SHT Get all entries (All should exist except the deleted)\n");
+    int ch10=0;
+    for (int i=0;i<testRecordsNumber*2;i++)
+    {
+        Record record;
+        record.id=i;
+        sprintf(record.name,"name_%d",i);
+        sprintf(record.surname,"surname_%d",i);
+        sprintf(record.address,"address_%d",i);
+        int err=SHT_SecondaryGetAllEntries(*shi,*hi,(void*)record.name);
+        if (err<0)
+        {
+            ch10+=1;
         }
-    /******************************************************************************************************************/
-
     }
-
-/*******************Get and Delete from HashTable**********************************************************************/
-
-    if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
-        fprintf(stderr, "Error opening file.\n");
-        HT_CloseIndex(headerInfo);
-        exit(EXIT_FAILURE);
+    if(ch10>deletesTest)
+    {
+        /*
+        If more than the deleted do not exist the test failed.
+        */
+        printf("Checkpoint Result 10: FAIL\n");
     }
-
-    int value = 0;
-    int numOfBlocksRead = HT_GetAllEntries(*headerInfo, &value);
-
-    if (HT_DeleteEntry(*headerInfo, &value) < 0) {
-        fprintf(stderr, "Error delete entry.\n");
-        exit(EXIT_FAILURE);
+    else
+    {
+        printf("Checkpoint Result 10: SUCCESS\n");
     }
-
-    //    HT_GetAllEntries(*headerInfo, &value);
-    //
-    //    hashIndex = HT_InsertEntry(*headerInfo, getRandomRecord(0));
-    //    if ( hashIndex < 0) {
-    //        fprintf(stderr, "Error inserting entry in file\n");
-    //        HT_CloseIndex(headerInfo);
-    //        exit(EXIT_FAILURE);
-    //    }
-    //
-    //    HT_GetAllEntries(*headerInfo, &value);
-
-    /* Close id hash index */
-    if (HT_CloseIndex(headerInfo) < 0) {
-        fprintf(stderr, "Error closing file.\n");
-        exit(EXIT_FAILURE);
+    printf("@Checkpoint 11\n");
+    int htCloseError=HT_CloseIndex(hi);
+    int shtCloseError=SHT_CloseSecondaryIndex(shi);
+    if (htCloseError==0 && shtCloseError==0)
+    {
+        printf("Checkpoint Result 11: SUCCESS\n");
     }
-/**********************************************************************************************************************/
-
-
-/*******************Get and Delete from Secondary HashTable************************************************************/
-
-    if ((sht_info = SHT_OpenSecondaryIndex(SECONDARYFILENAME)) == NULL) {
-        fprintf(stderr, "Error opening secondary file.\n");
-        SHT_CloseSecondaryIndex(sht_info);
-        exit(EXIT_FAILURE);
+    else
+    {
+        printf("Checkpoint Result 11: FAIL\n");
     }
-
-    if ((headerInfo = HT_OpenIndex(FILENAME)) == NULL) {
-        fprintf(stderr, "Error opening file.\n");
-        HT_CloseIndex(headerInfo);
-        exit(EXIT_FAILURE);
-    }
-
-    int numOfBlocksReadInSecHashtable = SHT_SecondaryGetAllEntries(*sht_info, *headerInfo, "Vagelis");
-
-    /* Close id hash index */
-    if (SHT_CloseSecondaryIndex(sht_info) < 0) {
-        fprintf(stderr, "Error closing secondary file.\n");
-        exit(EXIT_FAILURE);
-    }
-/**********************************************************************************************************************/
-
-    return EXIT_SUCCESS;
+    /*
+    Hash statistics.
+    */
+    printf("Statistics:HT\n");
+    HashStatistics(fileName);
+    printf("Statistics:SHT\n");
+    HashStatistics(sfileName);
+    return 0;
 }
 
 int HashStatistics(char *filename) {
+
+    HT_info* ht_info = HT_OpenIndex(filename);
+    if (ht_info != NULL) {
+        HT_Statistics(*ht_info);
+
+        HT_CloseIndex(ht_info);
+    } else {
+        SHT_info* sht_info = SHT_OpenSecondaryIndex(filename);
+
+        SHT_Statistics(*sht_info);
+
+        SHT_CloseSecondaryIndex(sht_info);
+    }
+
     return 0;
 };
-
-SecondaryRecord getSecondaryRecord(Record record, int index) {
-    SecondaryRecord secondaryRecord;
-    secondaryRecord.record = record;
-    secondaryRecord.blockId = index;
-    return secondaryRecord;
-}
-
-Record getRandomRecord(int id) {
-    Record record;
-    int r;
-
-    srand ((unsigned int) clock());
-    record.id = id;
-    r = rand() % 10;
-    memcpy(record.name, names[r], strlen(names[r]) + 1);
-    r = rand() % 10;
-    memcpy(record.surname, surnames[r], strlen(surnames[r]) + 1);
-    r = rand() % 10;
-    memcpy(record.address, address[r], strlen(address[r]) + 1);
-
-    return record;
-}
