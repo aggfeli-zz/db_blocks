@@ -57,7 +57,7 @@ int searchBlock(Block* bucket, char * attrName, char attrType, void * value);
 
 int printBucketBasedOnTypeNameValue(Block bucket, char *attrName, char attrType, void *value);
 
-int printBucketBasedOnlyOnValue(Block bucket, char *attrName, void *value);
+int printBucketBasedOnlyOnValue(Block bucket, void *value);
 
 
 SecondaryBlock* createEmptySecondaryBlock();

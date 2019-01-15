@@ -189,7 +189,7 @@ int printBucketBasedOnTypeNameValue(Block bucket, char *attrName, char attrType,
     return numOfPrintedRecords;
 }
 
-int printBucketBasedOnlyOnValue(Block bucket, char *attrName, void *value) {
+int printBucketBasedOnlyOnValue(Block bucket, void *value) {
     int numOfPrintedRecords = 0;
 
     for (int j = 0; j < bucket.recordsCounter; ++j) {
@@ -213,7 +213,7 @@ int printBucketBasedOnlyOnValue(Block bucket, char *attrName, void *value) {
 
 SecondaryBlock* createEmptySecondaryBlock() {
     SecondaryBlock* block = malloc(sizeof(SecondaryBlock));
-    int maxRecords = BLOCK_SIZE / getSecondaryRecordSize() - sizeof(int); // we need to keep the index of the overflow bucket
+    int maxRecords = BLOCK_SIZE / getSecondaryRecordSize();
     block->maxRecords = maxRecords;
     block->records = malloc(sizeof(SecondarySimpleRecord*) * maxRecords);
     block->recordsCounter = 0;

@@ -231,7 +231,7 @@ int HT_GetAllEntry(HT_info header_info, void* value, int blockIds[], int numOfBl
         numOfReadBlocks++;
 
         Block* bucket = blockFromByteArray(block);
-        numOfPrintedRecords += printBucketBasedOnlyOnValue(*bucket, header_info.attrName, value);
+        numOfPrintedRecords += printBucketBasedOnlyOnValue(*bucket, value);
     }
 
 //    printf("Number of records printed: %d\n", numOfPrintedRecords);
